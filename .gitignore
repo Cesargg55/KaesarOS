@@ -1,0 +1,10 @@
+# Lo que se genera al compilar
+build/
+*.bin
+*.img
+
+# Basura del sistema y editores
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
