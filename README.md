@@ -8,9 +8,10 @@ Sin Linux, sin librerías, sin nada debajo: solo la CPU, la BIOS y código escri
 
 ## Qué hace ahora
 
-- Arranca desde el sector de arranque (512 bytes) con la BIOS.
-- Muestra una consola (`K>`) que lee lo que escribes, con borrar y límite de 60 caracteres.
-- Reconoce comandos y responde. Por ahora: `help`.
+- Arranca con la BIOS desde un sector de 512 bytes, que carga el kernel desde el disco.
+- Muestra el logo durante 1 segundo.
+- Abre una consola (`K>`) con borrar y límite de 60 caracteres.
+- Comandos: `help`, `cls` y `clear`.
 
 
 ## Licencia

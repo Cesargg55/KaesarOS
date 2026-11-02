@@ -10,12 +10,36 @@ command equ 0x0500
     mov ss, ax
     mov sp, 0x7C00
 
-    ; --- Code ---
-    mov si, osName
-    call print
-    jmp cmd                     ; entra en la consola (nunca vuelve)
 
-    ; ---- FUNCIONES ----
+    mov ah, 0x02            ; Bios: Read disk
+    mov al, 16              ; sectores
+    mov ch, 0               
+    mov cl, 2
+    mov dh, 0
+    mov bx, 0x7E00          
+    int 0x13
+    jc diskError
+
+    mov ax,0x0003
+    int 0x10
+
+    mov si, logo
+    call print
+
+    mov ah, 0x86
+    mov cx, 0x000F
+    mov dx, 0x4240
+    int 0x15
+
+
+    jmp 0x7E00
+
+
+    diskError:
+        mov si, msgDisk
+        call print
+        jmp $
+
     print:            
         mov ah, 0x0E
     .again:                  
@@ -26,95 +50,16 @@ command equ 0x0500
         jmp .again          
     .end:
         ret       
+           
+msgDisk: db "Error leyendo el disco.", 13, 10, 0
 
-    readCommand:
-        mov di, command 
-        .key:
-            mov ah, 0x00
-            int 0x16
-            cmp al, 13          ; If key = enter
-            je .enter
-            cmp al, 8           ; If key = backspace
-            je .backspace
-            cmp di, command + 60    ; If Command Variable is full (max 60 characters)
-            je .key             ; ignora tecla
-            stosb               ; save key in command Variable
-            mov ah, 0x0E
-            int 0x10            ; print screen
-            jmp .key
-
-        .backspace:
-            cmp di, command     ; estamos al principio?
-            je .key             ; si -> no hay nada que borrar
-            dec di              ; el dedo retrocede una cajita
-            mov ah, 0x0E
-            mov al, 8
-            int 0x10            ; atras
-            mov al, ' '
-            int 0x10            ; espacio encima
-            mov al, 8
-            int 0x10            ; atras
-            jmp .key
-
-        .enter:
-            mov al, 0
-            stosb               ; pon el 0 del final: "aqui se acaba"
-            mov si, salto
-            call print          ; baja de linea
-            ret
-
-    compare:
-        .other:
-            mov al, [si]        ; letra de la frase 1
-            cmp al, [di]        ; es igual a la letra de la frase 2?
-            jne .end            ; distinta -> salir ("no son iguales")
-            cmp al, 0           ; es el final?
-            je .end             ; si, y las dos acaban -> salir ("son iguales")
-            inc si              ; los dos dedos avanzan
-            inc di
-            jmp .other
-        .end:
-            ret
-
-    cmd:                        ; Funcion de Terminal
-        mov si, prompt
-        call print
-        call readCommand
-
-        mov si, command
-        mov di, help
-        call compare
-        je helpCommand
-
-        mov si, unknow          ; No es un comando conocido
-        call print
-        jmp cmd
-
-             
-
-    ; --- Comandos Propios ---
-
-    helpCommand:
-        mov si, helpLine1
-        call print
-        jmp cmd
-
-
-    ; ---- TEXTOS ----
-osName: db "KaesarOS", 13, 10, 0
-prompt: db "K>  ", 0
-salto: db 13, 10, 0
-unknow: db "Comando desconocido", 13, 10, 0
-
-help: db "help", 0
-
-
-
-
-
-
-    ;--- Help Commands ----
-helpLine1: db "help => Comando para mas ayuda.", 13, 10, 0
+logo: db " _  __                           ____        ", 13, 10  
+        db "| |/ /                          / __ \      ", 13, 10  
+        db "| ' / __ _  ___  ___  __ _ _ __| |  | |___  ", 13, 10  
+        db "|  < / _` |/ _ \/ __|/ _` | '__| |  | / __| ", 13, 10  
+        db "| . \ (_| |  __/\__ \ (_| | |  | |__| \__ \ ", 13, 10  
+        db "|_|\_\__,_|\___||___/\__,_|_|   \____/|___/ ", 13, 10, 0                                          
+                                            
 
 times 510-($-$$) db 0
 dw 0xAA55
