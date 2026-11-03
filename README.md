@@ -11,7 +11,7 @@ Sin Linux, sin librerías, sin nada debajo: solo la CPU, la BIOS y código escri
 - Arranca con la BIOS desde un sector de 512 bytes, que carga el kernel desde el disco.
 - Muestra el logo durante 1 segundo.
 - Abre una consola (`K>`) con borrar y límite de 60 caracteres.
-- Comandos: `help`, `cls` y `clear`.
+- Comandos: `help`, `cls`, `clear`, `reboot` y `shutdown`.
 
 
 ## Licencia

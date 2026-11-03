@@ -4,13 +4,8 @@
 command equ 0x0500
 
     ; ---- PREPARACION ----
-    xor ax, ax
-    mov ds, ax
-    mov es, ax
-    mov ss, ax
-    mov sp, 0x7C00
 
-
+    mov bh, 0
 
 
     ; --- Code ---
@@ -105,6 +100,16 @@ command equ 0x0500
         call compare
         je clsCommand
 
+        mov si, command             ;reboot
+        mov di, reboot
+        call compare
+        je rebootCommand
+
+        mov si, command             ;shutdown
+        mov di, shutdown
+        call compare
+        je shutdownCommand
+
         mov si, unknow          ; No es un comando conocido
         call print
         jmp cmd
@@ -121,23 +126,45 @@ command equ 0x0500
         int 0x10           
         jmp cmd
 
+    rebootCommand:
+    .wait:
+        in al, 0x64
+        test al, 2
+        jnz .wait
+        mov al, 0xFE
+        out 0x64, al
+        jmp 0xFFFF:0x0000
 
-    ; ---- TEXTOS ----
+    shutdownCommand:
+        mov ax, 0x2000      ; orden de apagar
+        mov dx, 0x604       
+        out dx, ax          
+        mov si, msgOff      ; si seguimos aquí, no se ha apagado
+        call print
+    .stop:
+        hlt                 ; duerme la CPU hasta la siguiente interrupción
+        jmp .stop
+
+
+; ---- TEXTOS ----
 osName: db "KaesarOS", 13, 10, 0
 prompt: db "K>  ", 0
 salto: db 13, 10, 0
 unknow: db "Comando desconocido.", 13, 10, 0
+msgOff: db "Error al apagar.", 0
 
 
 help: db "help", 0
 cls: db "cls", 0
 clear: db "clear", 0
-
-
+reboot: db "reboot", 0
+shutdown: db "shutdown", 0
 
 
     ;--- Help Commands ----
 helpLine1: db "help => Comando para mas ayuda.", 13, 10
-            db "cls / clear => Comando para limpiar la pantalla.", 13, 10, 0
+            db "cls / clear => Comando para limpiar la pantalla.", 13, 10
+            db "reboot => Reinicio del sistema.", 13, 10
+            db "shutdown => Apagar el equipo.", 13, 10, 0
 
 times 16*512-($-$$) db 0

@@ -1,8 +1,6 @@
 [org 0x7C00]
 [bits 16]
 
-command equ 0x0500
-
     ; ---- PREPARACION ----
     xor ax, ax
     mov ds, ax
@@ -40,7 +38,8 @@ command equ 0x0500
         call print
         jmp $
 
-    print:            
+    print:           
+        mov bh, 0 
         mov ah, 0x0E
     .again:                  
         lodsb               
