@@ -2,6 +2,9 @@
 [bits 16]
 
 command equ 0x0500
+bootDrive equ 0x0600        
+diskBuffer equ 0x1000       ; zona de memoria para leer
+SECTOR_NOTA equ 18          ; 1 = boot, 2 a 17 = kernel, 18 = libre
 
     ; ---- PREPARACION ----
 
@@ -110,6 +113,16 @@ command equ 0x0500
         call compare
         je shutdownCommand
 
+        mov si, command             ;create
+        mov di, create
+        call compare
+        je createCommand
+
+        mov si, command             ;load
+        mov di, load
+        call compare
+        je loadCommand
+
         mov si, unknow          ; No es un comando conocido
         call print
         jmp cmd
@@ -127,13 +140,13 @@ command equ 0x0500
         jmp cmd
 
     rebootCommand:
-    .wait:
-        in al, 0x64
-        test al, 2
-        jnz .wait
-        mov al, 0xFE
-        out 0x64, al
-        jmp 0xFFFF:0x0000
+        .wait:
+            in al, 0x64
+            test al, 2
+            jnz .wait
+            mov al, 0xFE
+            out 0x64, al
+            jmp 0xFFFF:0x0000
 
     shutdownCommand:
         mov ax, 0x2000      ; orden de apagar
@@ -141,9 +154,47 @@ command equ 0x0500
         out dx, ax          
         mov si, msgOff      ; si seguimos aquí, no se ha apagado
         call print
-    .stop:
-        hlt                 ; duerme la CPU hasta la siguiente interrupción
-        jmp .stop
+        .stop:
+            hlt                 ; duerme la CPU hasta la siguiente interrupción
+            jmp .stop
+
+    createCommand:
+        mov si, msgText
+        call print
+        call readCommand    ; reutiliza tu función: el texto queda en command
+        mov ah, 0x03        ; BIOS: escribir en el disco
+        mov al, 1           ; 1 sector
+        mov ch, 0           ; cilindro 0
+        mov cl, SECTOR_NOTA ; sector 18
+        mov dh, 0           ; cabeza 0
+        mov dl, [bootDrive] ; qué disco
+        mov bx, command     ; qué memoria escribir
+        int 0x13
+        mov bh, 0           ; BX ha cambiado: vuelve a dejar la página 0
+        jc diskFail
+        jmp cmd
+    
+    loadCommand:
+        mov ah, 0x02        ; BIOS: leer del disco
+        mov al, 1
+        mov ch, 0
+        mov cl, SECTOR_NOTA
+        mov dh, 0
+        mov dl, [bootDrive]
+        mov bx, diskBuffer  ; dónde dejar lo leído
+        int 0x13
+        mov bh, 0
+        jc diskFail
+        mov si, diskBuffer
+        call print
+        mov si, salto
+        call print
+        jmp cmd
+
+    diskFail:
+        mov si, msgDiskFail
+        call print
+        jmp cmd
 
 
 ; ---- TEXTOS ----
@@ -152,6 +203,8 @@ prompt: db "K>  ", 0
 salto: db 13, 10, 0
 unknow: db "Comando desconocido.", 13, 10, 0
 msgOff: db "Error al apagar.", 0
+msgText: db "Texto: ", 0
+msgDiskFail: db "Error de disco.", 13, 10, 0
 
 
 help: db "help", 0
@@ -159,12 +212,19 @@ cls: db "cls", 0
 clear: db "clear", 0
 reboot: db "reboot", 0
 shutdown: db "shutdown", 0
+create: db "create", 0
+load: db "load", 0
+
 
 
     ;--- Help Commands ----
 helpLine1: db "help => Comando para mas ayuda.", 13, 10
             db "cls / clear => Comando para limpiar la pantalla.", 13, 10
             db "reboot => Reinicio del sistema.", 13, 10
-            db "shutdown => Apagar el equipo.", 13, 10, 0
+            db "shutdown => Apagar el equipo.", 13, 10
+            db "create => Crear archivo.", 13, 10
+            db "load => Cargar archivo.", 13, 10, 0
 
 times 16*512-($-$$) db 0
+times 32*512 db 0
+

@@ -6,8 +6,12 @@
     mov ds, ax
     mov es, ax
     mov ss, ax
+
+    bootDrive equ 0x0600
+
     mov sp, 0x7C00
 
+    mov [bootDrive], dl ; guarda el disco en memoria
 
     mov ah, 0x02            ; Bios: Read disk
     mov al, 16              ; sectores
